@@ -1,4 +1,4 @@
-import type { FlowRecipe } from '@tronlink/mcp-core';
+import type { FlowRecipe } from '@tronlink/tronlink-mcp-core';
 
 /**
  * Flow recipe: Import a wallet using a private key on the TronLink guide/onboarding screen.

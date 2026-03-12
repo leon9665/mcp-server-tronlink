@@ -1,4 +1,11 @@
-# @tronlink/mcp-server-tronlink
+# mcp-server-tronlink
+
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![TRON Network](https://img.shields.io/badge/Network-TRON-red)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-3178C6)
+![MCP](https://img.shields.io/badge/MCP-1.22.0+-blue)
+![TronLink](https://img.shields.io/badge/Wallet-TronLink-2B71FF)
+![npm](https://img.shields.io/badge/npm-@tronlink/mcp--server--tronlink-CB3837)
 
 TronLink MCP Server — a production-ready MCP server that enables AI agents (Claude, GPT, etc.) to interact with the TRON blockchain through natural language.
 

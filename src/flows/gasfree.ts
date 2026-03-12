@@ -1,4 +1,4 @@
-import type { FlowRecipe } from '@tronlink/mcp-core';
+import type { FlowRecipe } from '@tronlink/tronlink-mcp-core';
 
 export const gasfreeCheckAccountFlow: FlowRecipe = {
   id: 'gasfree_check_account',

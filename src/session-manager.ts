@@ -23,16 +23,16 @@ import type {
   MultiSigCapability,
   OnChainCapability,
   GasFreeCapability,
-} from '@tronlink/mcp-core';
+} from '@tronlink/tronlink-mcp-core';
 import {
   generateSessionId,
   SCREENSHOT_DIR,
   TRONLINK_URLS,
-} from '@tronlink/mcp-core';
+} from '@tronlink/tronlink-mcp-core';
 import {
   resolveExtensionId,
   waitForExtensionReady,
-} from '@tronlink/mcp-core';
+} from '@tronlink/tronlink-mcp-core';
 
 export interface TronLinkSessionManagerConfig {
   extensionPath: string;

@@ -1,4 +1,4 @@
-import type { FlowRecipe } from '@tronlink/mcp-core';
+import type { FlowRecipe } from '@tronlink/tronlink-mcp-core';
 
 /**
  * Flow recipe: Switch TronLink to a different TRON network.

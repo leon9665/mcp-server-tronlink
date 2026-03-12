@@ -3,7 +3,7 @@ import type {
   StateSnapshotCapability,
   StateOptions,
   StateSnapshot,
-} from '@tronlink/mcp-core';
+} from '@tronlink/tronlink-mcp-core';
 
 /**
  * State snapshot capability for TronLink extension.

@@ -22,7 +22,7 @@ import type {
   ChainUnsignedTxResult,
   ChainSignMultisigTxParams,
   ChainSignedTxResult,
-} from '@tronlink/mcp-core';
+} from '@tronlink/tronlink-mcp-core';
 
 // ── Configuration ──────────────────────────────────────────
 

@@ -12,7 +12,7 @@ import {
   KnowledgeStore,
   setKnowledgeStore,
   KNOWLEDGE_DIR,
-} from '@tronlink/mcp-core';
+} from '@tronlink/tronlink-mcp-core';
 import { TronLinkSessionManager } from './session-manager.js';
 import { TronLinkBuildCapability } from './capabilities/build.js';
 import { TronLinkStateSnapshotCapability } from './capabilities/state-snapshot.js';

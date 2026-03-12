@@ -1,4 +1,4 @@
-import { getFlowRegistry } from '@tronlink/mcp-core';
+import { getFlowRegistry } from '@tronlink/tronlink-mcp-core';
 import { importWalletFlow } from './import-wallet.js';
 import {
   switchNetworkFlow,

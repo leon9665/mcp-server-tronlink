@@ -7,7 +7,7 @@ import type {
   MultiSigListParams,
   MultiSigListResult,
   MultiSigTransactionDetail,
-} from '@tronlink/mcp-core';
+} from '@tronlink/tronlink-mcp-core';
 
 export interface MultiSigConfig {
   /** API base URL (e.g. https://apinile.walletadapter.org) */

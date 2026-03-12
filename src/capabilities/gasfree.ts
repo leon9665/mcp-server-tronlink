@@ -5,7 +5,7 @@ import type {
   GasFreeTransactionList,
   GasFreeSendParams,
   GasFreeTxResult,
-} from '@tronlink/mcp-core';
+} from '@tronlink/tronlink-mcp-core';
 import { privateKeyToAddress } from './tron-crypto.js';
 
 export interface GasFreeConfig {

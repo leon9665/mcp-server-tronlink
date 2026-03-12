@@ -1,7 +1,7 @@
 import { exec } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { BuildCapability, BuildOptions, BuildResult } from '@tronlink/mcp-core';
+import type { BuildCapability, BuildOptions, BuildResult } from '@tronlink/tronlink-mcp-core';
 
 /**
  * Build capability for TronLink extension.
