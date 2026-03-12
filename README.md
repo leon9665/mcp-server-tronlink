@@ -9,7 +9,7 @@
 
 TronLink MCP Server — a production-ready MCP server that enables AI agents (Claude, GPT, etc.) to interact with the TRON blockchain through natural language.
 
-Built on `@tronlink/mcp-core`, it provides two operation modes:
+Built on `@tronlink/tronlink-mcp-core`, it provides two operation modes:
 
 - **Playwright Mode** — browser automation to control the TronLink Chrome extension UI (navigate, click, type, screenshot, etc.)
 - **Direct API Mode** — on-chain operations via TronGrid API, GasFree transfers, and multi-signature management — no browser required
@@ -56,7 +56,7 @@ Built on `@tronlink/mcp-core`, it provides two operation modes:
 │  └────────────────────────────────────────┘  │
 │                    │ (uses)                   │
 │  ┌─────────────────▼──────────────────────┐  │
-│  │  @tronlink/mcp-core                    │  │
+│  │  @tronlink/tronlink-mcp-core                    │  │
 │  │  ├── MCP Server (stdio transport)      │  │
 │  │  ├── 56+ tl_* tool handlers            │  │
 │  │  ├── Knowledge Store                   │  │
