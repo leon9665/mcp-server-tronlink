@@ -99,12 +99,20 @@ Just configure `TL_TRONGRID_URL` — the server auto-generates an encrypted wall
 }
 ```
 
-On startup, the server will:
+On startup, if no wallet exists the server will:
 1. Generate a random encryption password → save to `~/.agent-wallet/runtime_secrets.json`
 2. Create an encrypted wallet (`main`) → save to `~/.agent-wallet/`
 3. Print the wallet address and faucet URL to stderr
 
-> To use an existing wallet or specify your own password, set `AGENT_WALLET_PASSWORD` in env.
+### Manual Setup (Existing Wallet)
+
+If you prefer to create a wallet yourself or use an existing one:
+
+1. Create a wallet: `agent-wallet start local_secure --generate --wallet-id main`
+2. Add `AGENT_WALLET_PASSWORD` to your `.mcp.json` env (must match the password used above)
+3. Restart the MCP server
+
+Once a wallet is configured (auto or manual), on-chain tools (`tl_chain_*`, `tl_gasfree_*`, `tl_multisig_*`) become available.
 
 ### Manual Setup
 
@@ -125,7 +133,7 @@ npm install
 npm run build
 ```
 
-#### 3. (Optional) Create Wallet Manually
+#### 3. Create Wallet Locally (required for on-chain tools)
 
 ```bash
 npm install -g @bankofai/agent-wallet
@@ -194,7 +202,7 @@ Calls TRON blockchain APIs directly using TronWeb-compatible REST calls and loca
 | `TL_TRONGRID_URL` | TronGrid full-node API URL | — |
 | `TL_TRONGRID_API_KEY` | TronGrid API Key (required for Mainnet, not needed for Nile/Shasta) | — |
 | **Wallet (agent-wallet)** | | |
-| `AGENT_WALLET_PASSWORD` | Encryption password (optional — auto-generated if not set) | Auto-generated |
+| `AGENT_WALLET_PASSWORD` | Encryption password (optional for auto-create; required for manual setup) | Auto-generated |
 | `AGENT_WALLET_DIR` | Custom wallet storage directory | `~/.agent-wallet` |
 | `TL_OWNER_WALLET_ID` | Owner wallet ID for multisig signing | active wallet |
 | `TL_COSIGNER_WALLET_ID` | Co-signer wallet ID for multisig | — |
@@ -218,7 +226,7 @@ Calls TRON blockchain APIs directly using TronWeb-compatible REST calls and loca
 >
 > Configuring `TL_GASFREE_BASE_URL` + `TL_GASFREE_API_KEY` enables the `tl_gasfree_*` gas-free transfer tool group (3 tools).
 >
-> **Security**: Private keys are managed by `@bankofai/agent-wallet` with encrypted local storage (`local_secure`). Plain-text keys in env vars are not supported. If `AGENT_WALLET_PASSWORD` is not set, a random password is auto-generated and saved to `~/.agent-wallet/runtime_secrets.json`.
+> **Security**: Private keys are managed by `@bankofai/agent-wallet` with encrypted local storage (`local_secure`). Plain-text keys in env vars are not supported. If no wallet exists at startup, the server can auto-generate one (password saved to `~/.agent-wallet/runtime_secrets.json`), or you can create one manually via CLI and set `AGENT_WALLET_PASSWORD`.
 
 ### API Key Acquisition Guide
 
@@ -298,7 +306,7 @@ No configuration needed for Mainnet (uses default). For Nile testnet, query the 
 
 #### Wallet Setup (Optional — auto-created if not configured)
 
-The server auto-generates an encrypted wallet on first launch if none exists. To create one manually:
+The server auto-generates an encrypted wallet on first launch if none exists. To create one manually instead:
 
 ```bash
 # 1. Install agent-wallet CLI
@@ -311,7 +319,7 @@ agent-wallet start local_secure --generate --wallet-id main
 agent-wallet start local_secure --generate --wallet-id cosigner
 ```
 
-You can also manage wallets at runtime via MCP tools: `tl_wallet_list`, `tl_wallet_set_active`, `tl_wallet_import`.
+You can also manage wallets at runtime via MCP tools: `tl_wallet_list`, `tl_wallet_set_active`.
 
 #### Quick Config Reference (Nile Testnet .mcp.json)
 
@@ -327,6 +335,7 @@ You can also manage wallets at runtime via MCP tools: `tl_wallet_list`, `tl_wall
         "TL_MODE": "prod",
         "TL_HEADLESS": "false",
         "TL_TRONGRID_URL": "https://nile.trongrid.io",
+        "AGENT_WALLET_PASSWORD": "your-wallet-password",
         "TL_SUNSWAP_ROUTER": "TKzxdSv2FZKQrEqkKVgp5DcwEXBEKMg2Ax",
         "TL_SUNSWAP_V3_ROUTER": "TB6xBCixqRPUSKiXb45ky1GhChFJ7qrfFj",
         "TL_MULTISIG_BASE_URL": "https://apinile.walletadapter.org",
@@ -357,6 +366,7 @@ If you only need direct API tools (on-chain, multisig, gasfree) without browser 
       "cwd": ".",
       "env": {
         "TL_TRONGRID_URL": "https://nile.trongrid.io",
+        "AGENT_WALLET_PASSWORD": "your-wallet-password",
         "TL_MULTISIG_BASE_URL": "https://apinile.walletadapter.org",
         "TL_MULTISIG_SECRET_ID": "TEST",
         "TL_MULTISIG_SECRET_KEY": "TESTTESTTEST",
@@ -370,7 +380,7 @@ If you only need direct API tools (on-chain, multisig, gasfree) without browser 
 }
 ```
 
-This configuration enables 25 API tools (including 3 wallet management tools) without launching a browser. Playwright-based tools (`tl_launch`, `tl_click`, etc.) will not be available. `AGENT_WALLET_PASSWORD` is optional — omit it to let the server auto-generate a password.
+This configuration enables API tools (including 2 wallet management tools) without launching a browser. Playwright-based tools (`tl_launch`, `tl_click`, etc.) will not be available. `AGENT_WALLET_PASSWORD` is optional — omit it to let the server auto-generate a wallet and password on first launch.
 
 ### Extension Path Auto-Detection
 
@@ -389,11 +399,12 @@ Condition: directory contains a `manifest.json` file.
 
 ### Option 1: Project-Level `.mcp.json` (Recommended)
 
-The project includes a `.mcp.json` file. Claude Code auto-detects it. Just fill in your credentials:
+The project includes a `.mcp.json` file. Claude Code auto-detects it. Fill in your credentials, and if you want on-chain tools, create the wallet locally first and set `AGENT_WALLET_PASSWORD`:
 
 ```bash
 # .mcp.json already exists, edit directly
 # Fill in TL_MULTISIG_SECRET_ID / SECRET_KEY / CHANNEL etc.
+# If you want on-chain tools, also add AGENT_WALLET_PASSWORD after creating the wallet locally
 ```
 
 `.mcp.json` example:
@@ -411,6 +422,7 @@ The project includes a `.mcp.json` file. Claude Code auto-detects it. Just fill 
         "TL_HEADLESS": "false",
         "TL_SLOW_MO": "0",
         "TL_TRONGRID_URL": "https://nile.trongrid.io",
+        "AGENT_WALLET_PASSWORD": "your-wallet-password",
         "TL_TRONGRID_API_KEY": "",
         "TL_MULTISIG_BASE_URL": "https://apinile.walletadapter.org",
         "TL_MULTISIG_SECRET_ID": "your-secret-id",
@@ -437,6 +449,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
       "env": {
         "TRONLINK_EXTENSION_PATH": "/absolute/path/to/tronlink-extension-pro/dist",
         "TL_TRONGRID_URL": "https://nile.trongrid.io",
+        "AGENT_WALLET_PASSWORD": "your-wallet-password",
         "TL_MULTISIG_BASE_URL": "https://apinile.walletadapter.org",
         "TL_MULTISIG_SECRET_ID": "your-secret-id",
         "TL_MULTISIG_SECRET_KEY": "your-secret-key",
@@ -459,7 +472,8 @@ Edit `~/.claude/settings.json` or project-level `.claude/settings.json`:
       "args": ["/absolute/path/to/mcp-server-tronlink/dist/index.js"],
       "env": {
         "TRONLINK_EXTENSION_PATH": "/absolute/path/to/tronlink-extension-pro/dist",
-        "TL_TRONGRID_URL": "https://nile.trongrid.io"
+        "TL_TRONGRID_URL": "https://nile.trongrid.io",
+        "AGENT_WALLET_PASSWORD": "your-wallet-password"
       }
     }
   }
@@ -702,7 +716,6 @@ The server exposes 59+ tools via MCP protocol. Tools are grouped by mode:
 |------|-------------|
 | `tl_wallet_list` | List all wallets with IDs, types, active status, and TRON addresses |
 | `tl_wallet_set_active` | Switch the active wallet by ID (hot-swaps into all capabilities) |
-| `tl_wallet_import` | Import a private key — encrypted immediately, never stored in plain text |
 
 ### Direct API Tools
 
@@ -832,8 +845,8 @@ Full implementation of the `ISessionManager` interface:
 mcp-server-tronlink/
 ├── src/
 │   ├── index.ts                    # Entry: parse config, register capabilities, start server
-│   ├── wallet.ts                   # Unified wallet entry (agent-wallet, encrypted-only policy, auto-generate)
-│   ├── wallet-tools.ts             # MCP wallet management tools (list, switch, import)
+│   ├── wallet.ts                   # Unified wallet entry (agent-wallet, encrypted-only, auto-generate)
+│   ├── wallet-tools.ts             # MCP wallet management tools (list, switch)
 │   ├── session-manager.ts          # TronLinkSessionManager (full ISessionManager implementation)
 │   ├── capabilities/
 │   │   ├── build.ts                # TronLinkBuildCapability (webpack build)

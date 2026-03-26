@@ -64,6 +64,7 @@ let _resolvedPassword: string | undefined;
  *   1. AGENT_WALLET_PASSWORD env var
  *   2. Existing runtime_secrets.json in config dir
  *   3. Auto-generate random password and save to runtime_secrets.json
+ *      (only if no existing wallets — prevents overwriting lost passwords)
  */
 function resolvePassword(): string {
   if (_resolvedPassword) return _resolvedPassword;
@@ -94,7 +95,6 @@ function resolvePassword(): string {
   // 3. Before generating a new password, check if wallets already exist.
   //    If they do, the old password is lost — generating a new one would
   //    overwrite runtime_secrets.json and lock the existing wallets.
-  //    Check both wallets_config.json (config) and master.json (encryption key).
   const walletConfigPath = join(configDir, 'wallets_config.json');
   const masterPath = join(configDir, 'master.json');
   if (existsSync(walletConfigPath) || existsSync(masterPath)) {
@@ -286,63 +286,7 @@ export async function setActiveWallet(
 }
 
 /**
- * Import a private key as an encrypted wallet.
- * The key is encrypted immediately and never stored in plain text.
- *
- * Uses a verify-before-commit pattern: the secret is saved and the wallet
- * is decrypted to obtain the address. Only if decryption succeeds is the
- * wallet registered in config. On failure the secret file is cleaned up.
- */
-export async function importWallet(
-  network: string,
-  walletId: string,
-  privateKey: string,
-  makeActive = false,
-): Promise<string> {
-  const configDir = getConfigDir();
-  const password = resolvePassword();
-
-  // Normalize: strip 0x prefix if present
-  const cleanKey = privateKey.replace(/^0x/i, '');
-  if (!/^[0-9a-fA-F]{64}$/.test(cleanKey)) {
-    throw new Error('Invalid private key: must be 64 hex characters.');
-  }
-
-  // Step 1: Encrypt and save the secret file
-  const store = new SecureKVStore(configDir, password);
-  store.saveSecret(walletId, Buffer.from(cleanKey, 'hex'));
-
-  // Step 2: Register in config and verify decryption works
-  const provider = getProvider(network);
-  const walletConfig: WalletConfig = {
-    type: 'local_secure',
-    params: { secret_ref: walletId },
-  };
-
-  try {
-    provider.addWallet(walletId, walletConfig, { setActiveIfMissing: false });
-    // Verify the wallet can actually be decrypted
-    const wallet = await provider.getWallet(walletId, network);
-    const address = await wallet.getAddress();
-
-    // Only set active after successful verification
-    if (makeActive) {
-      provider.setActive(walletId);
-    }
-    clearWalletCache();
-    return address;
-  } catch (err) {
-    // Rollback: remove the wallet config entry
-    try { provider.removeWallet(walletId); } catch { /* best effort */ }
-    // Note: secret file remains (harmless encrypted blob), but config is clean
-    throw err;
-  }
-}
-
-/**
  * Auto-generate an encrypted wallet if none exists.
- * Delegates to `agent-wallet` CLI which handles master.json init,
- * secret generation, and config registration correctly.
  *
  * Returns the wallet address, or undefined if wallets already exist.
  */
@@ -374,7 +318,6 @@ export async function autoGenerateWallet(
   const walletId = 'main';
   logger?.('No wallets found. Auto-generating encrypted wallet...');
 
-  // Generate wallet directly via SDK (no CLI dependency)
   try {
     // 1. Create directory
     mkdirSync(configDir, { recursive: true, mode: 0o700 });
@@ -427,10 +370,11 @@ export async function signTransaction(
   if (typeof result === 'string') {
     try {
       const parsed = JSON.parse(result) as Record<string, unknown>;
-      if (parsed.signature) {
-        return parsed;
+      if (Array.isArray(parsed.signature) && parsed.signature.length > 0) {
+        // Merge parsed fields onto unsignedTx to preserve raw_data/txID
+        return { ...unsignedTx, ...parsed };
       }
-      // Parsed but no signature field — treat as signature hex
+      // Parsed but no valid signature array — treat as signature hex
       return { ...unsignedTx, signature: [result] };
     } catch {
       // Not JSON — raw hex signature

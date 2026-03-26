@@ -28,17 +28,32 @@ export class TronLinkGasFreeCapability implements GasFreeCapability {
   private wallet: Wallet;
   private address!: string;
   private initialized = false;
+  private initPromise: Promise<void> | null = null;
+  private generation = 0;
 
   constructor(config: GasFreeConfig) {
     this.config = config;
     this.wallet = config.wallet;
   }
 
-  /** Resolve wallet address. Must be called before using the capability. */
+  /** Resolve wallet address. Guarded against concurrent, stale, and failed calls. */
   async init(): Promise<void> {
     if (this.initialized) return;
-    this.address = await this.wallet.getAddress();
-    this.initialized = true;
+    if (!this.initPromise) {
+      const gen = this.generation;
+      this.initPromise = (async () => {
+        try {
+          const addr = await this.wallet.getAddress();
+          if (gen !== this.generation) return; // stale — wallet swapped mid-init
+          this.address = addr;
+          this.initialized = true;
+        } catch (err) {
+          if (gen === this.generation) this.initPromise = null; // allow retry
+          throw err;
+        }
+      })();
+    }
+    return this.initPromise;
   }
 
   /** Replace the wallet and reset cached state so the next operation re-inits. */
@@ -46,6 +61,8 @@ export class TronLinkGasFreeCapability implements GasFreeCapability {
     this.wallet = wallet;
     this.config = { ...this.config, wallet };
     this.initialized = false;
+    this.initPromise = null;
+    this.generation++;
   }
 
   private async apiGet(path: string): Promise<any> {

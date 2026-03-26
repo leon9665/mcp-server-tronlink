@@ -2,14 +2,13 @@
  * MCP tool definitions for wallet management.
  *
  * These tools are registered alongside core tools and provide
- * runtime wallet operations: list, switch, import.
+ * runtime wallet operations: list, switch.
  */
 
 import type { Wallet } from '@bankofai/agent-wallet';
 import {
   listWallets,
   setActiveWallet,
-  importWallet,
   resolveSecureWallet,
 } from './wallet.js';
 
@@ -81,6 +80,17 @@ export function getWalletToolDefinitions(
       },
       handler: wrapHandler(async () => {
         const wallets = await listWallets(network);
+        if (wallets.length === 0) {
+          return {
+            wallets,
+            message:
+              'No wallets configured. Two options:\n' +
+              '  Option A (auto): Restart the MCP server — a wallet will be auto-generated\n' +
+              '  Option B (manual):\n' +
+              '    1. agent-wallet start local_secure --generate --wallet-id main\n' +
+              '    2. Add AGENT_WALLET_PASSWORD to your .mcp.json env and restart',
+          };
+        }
         return { wallets };
       }),
     },
@@ -109,47 +119,6 @@ export function getWalletToolDefinitions(
         }
 
         return { wallet_id: walletId, address, message: `Active wallet set to "${walletId}"` };
-      }),
-    },
-    {
-      name: `${prefix}_wallet_import`,
-      description:
-        'Import a private key into encrypted agent-wallet storage. The key is encrypted immediately and never stored in plain text.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          wallet_id: {
-            type: 'string',
-            description: 'ID for the new wallet (e.g. "trading", "backup")',
-          },
-          private_key: {
-            type: 'string',
-            description: 'Hex private key (64 characters, with or without 0x prefix)',
-          },
-          set_active: {
-            type: 'boolean',
-            description: 'Set this wallet as active after import (default: false)',
-          },
-        },
-        required: ['wallet_id', 'private_key'],
-      },
-      handler: wrapHandler(async (args) => {
-        const walletId = args.wallet_id as string;
-        const privateKey = args.private_key as string;
-        const makeActive = (args.set_active as boolean) ?? false;
-        const address = await importWallet(network, walletId, privateKey, makeActive);
-
-        // If imported wallet is now active, propagate to capabilities
-        if (makeActive && onWalletSwap) {
-          const newWallet = await resolveSecureWallet(network, walletId);
-          onWalletSwap(newWallet);
-        }
-
-        return {
-          wallet_id: walletId,
-          address,
-          message: `Wallet "${walletId}" imported and encrypted`,
-        };
       }),
     },
   ];

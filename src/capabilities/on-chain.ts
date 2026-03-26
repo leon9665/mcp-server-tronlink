@@ -205,6 +205,8 @@ export class TronLinkOnChainCapability implements OnChainCapability {
   private addressHex!: string;
   private swapConstants: SwapNetworkConstants;
   private initialized = false;
+  private initPromise: Promise<void> | null = null;
+  private generation = 0;
 
   constructor(config: OnChainConfig) {
     this.config = config;
@@ -212,12 +214,25 @@ export class TronLinkOnChainCapability implements OnChainCapability {
     this.swapConstants = getSwapConstants(config.tronGridUrl);
   }
 
-  /** Resolve wallet address. Must be called before using the capability. */
+  /** Resolve wallet address. Guarded against concurrent, stale, and failed calls. */
   async init(): Promise<void> {
     if (this.initialized) return;
-    this.address = await this.wallet.getAddress();
-    this.addressHex = addressToHex(this.address);
-    this.initialized = true;
+    if (!this.initPromise) {
+      const gen = this.generation;
+      this.initPromise = (async () => {
+        try {
+          const addr = await this.wallet.getAddress();
+          if (gen !== this.generation) return; // stale — wallet swapped mid-init
+          this.address = addr;
+          this.addressHex = addressToHex(addr);
+          this.initialized = true;
+        } catch (err) {
+          if (gen === this.generation) this.initPromise = null; // allow retry
+          throw err;
+        }
+      })();
+    }
+    return this.initPromise;
   }
 
   /** Replace the wallet and reset cached state so the next operation re-inits. */
@@ -225,6 +240,8 @@ export class TronLinkOnChainCapability implements OnChainCapability {
     this.wallet = wallet;
     this.config = { ...this.config, wallet, cosignerWallet: cosignerWallet ?? this.config.cosignerWallet };
     this.initialized = false;
+    this.initPromise = null;
+    this.generation++;
   }
 
   private ensureInit(): void {

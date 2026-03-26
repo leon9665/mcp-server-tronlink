@@ -97,19 +97,31 @@ async function main() {
   const chainGridUrl = process.env.TL_TRONGRID_URL;
   const tronNetwork = detectTronNetwork(chainGridUrl);
 
-  // Auto-generate encrypted wallet if none exists
-  await autoGenerateWallet(tronNetwork, logger);
-
   // Resolve the main wallet (for on-chain operations)
+  // Two paths: auto-create (zero-config) or manual (CLI + AGENT_WALLET_PASSWORD)
   let mainWallet: Wallet | undefined;
   try {
     mainWallet = await resolveSecureWallet(tronNetwork);
     const addr = await mainWallet.getAddress();
     logWalletInfo(logger, addr, tronNetwork, chainGridUrl);
-  } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err);
-    logger(`Wallet not available: ${detail}`);
-    logger('Setup: npm i -g @bankofai/agent-wallet && agent-wallet start local_secure --generate --wallet-id main');
+  } catch {
+    // No wallet yet — try auto-create
+    const autoAddr = await autoGenerateWallet(tronNetwork, logger);
+    if (autoAddr) {
+      try {
+        mainWallet = await resolveSecureWallet(tronNetwork);
+        logWalletInfo(logger, autoAddr, tronNetwork, chainGridUrl);
+      } catch (err2) {
+        const detail = err2 instanceof Error ? err2.message : String(err2);
+        logger(`Auto-created wallet but failed to load: ${detail}`);
+      }
+    } else {
+      logger('No wallet configured. Two options:');
+      logger('  Option A (auto): Remove existing wallet files and restart to auto-generate');
+      logger('  Option B (manual):');
+      logger('    1. agent-wallet start local_secure --generate --wallet-id main');
+      logger('    2. Add AGENT_WALLET_PASSWORD to your .mcp.json env and restart');
+    }
   }
 
   // Resolve cosigner wallet if configured
@@ -244,6 +256,7 @@ async function main() {
   const onWalletSwap = (newWallet: import('@bankofai/agent-wallet').Wallet) => {
     if (onChainCapability) onChainCapability.swapWallet(newWallet);
     if (gasFreeCapability) gasFreeCapability.swapWallet(newWallet);
+    // Only swap owner wallet; cosigner is preserved via ?? fallback in swapWallets()
     if (multiSigCapability) multiSigCapability.swapWallets(newWallet);
     logger(`Capabilities swapped to new wallet`);
   };
